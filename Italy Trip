@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Italy Trip - April 2025</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body, #map { height: 100%; margin: 0 }
+    .leaflet-popup-content { font-size: 0.85rem; line-height: 1.3; font-weight: 600 }
+    .emoji-marker { font-size: 1.4rem }
+    .leaflet-tooltip.trip-label {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 2px 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    (function () {
+      // initialise map
+      const leafletMap = L.map('map').setView([40.3, 14.3], 6);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(leafletMap);
+
+      // trip data
+      const stops = [
+        { name: 'Rome', icon: '🛬', day: 'Wed', date: '16 Apr 2025', lat: 41.9028, lon: 12.4964 },
+        { name: 'Sorrento', icon: '🏖️', day: 'Thu', date: '17 Apr 2025', lat: 40.6262, lon: 14.3759 },
+        { name: 'Pompeii', icon: '🏛️', day: 'Thu', date: '17 Apr 2025', lat: 40.7460, lon: 14.4989 },
+        { name: 'Taormina', icon: '🎭', day: 'Fri', date: '18 Apr 2025', lat: 37.8530, lon: 15.2880 },
+        { name: 'Mount Etna', icon: '🌋', day: 'Fri', date: '18 Apr 2025', lat: 37.7560, lon: 15.0000 }
+      ];
+
+      // add markers & labels
+      const coords = [];
+      stops.forEach(s => {
+        const marker = L.marker([s.lat, s.lon], {
+          icon: L.divIcon({
+            className: 'emoji-marker',
+            html: `<span>${s.icon}</span>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+          })
+        }).addTo(leafletMap);
+
+        marker.bindTooltip(`${s.name}<br>${s.day} ${s.date}`, {
+          permanent: true,
+          direction: 'right',
+          className: 'trip-label',
+          offset: [10, 0]
+        }).openTooltip();
+
+        coords.push([s.lat, s.lon]);
+      });
+
+      // main route line
+      const route = L.polyline(coords, { color: 'darkred', weight: 4 }).addTo(leafletMap);
+      leafletMap.fitBounds(route.getBounds(), { padding: [30, 30] });
+
+      // ARROWS ---------------------------------------------------------
+      let arrowMarkers = [];
+
+      function clearArrows() {
+        arrowMarkers.forEach(mk => leafletMap.removeLayer(mk));
+        arrowMarkers = [];
+      }
+
+      function addArrows() {
+        clearArrows();
+        for (let i = 1; i < stops.length; i++) {
+          const a = stops[i - 1];
+          const b = stops[i];
+          const midLat = (a.lat + b.lat) / 2;
+          const midLon = (a.lon + b.lon) / 2;
+
+          const p1 = leafletMap.latLngToLayerPoint([a.lat, a.lon]);
+          const p2 = leafletMap.latLngToLayerPoint([b.lat, b.lon]);
+          const angleDeg = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+
+          const arrowIcon = L.divIcon({
+            className: 'arrow-icon',
+            html: `<svg width="28" height="28" viewBox="0 0 24 24" style="transform: rotate(${angleDeg}deg);">
+                    <path d="M2 12 L20 12 M14 6 L20 12 L14 18" stroke="darkred" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                   </svg>` ,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+          });
+
+          const mk = L.marker([midLat, midLon], { icon: arrowIcon, interactive: false }).addTo(leafletMap);
+          arrowMarkers.push(mk);
+        }
+      }
+
+      // initial arrows
+      addArrows();
+      // keep arrows correctly oriented after zoom / move
+      leafletMap.on('zoomend moveend', addArrows);
+    })();
+  </script>
+</body>
+</html>
